@@ -20,25 +20,24 @@ SCREEN_HEIGHT = 600
 # Create the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Create a custom event for adding a new enemy
-ADDENEMY = pygame.USEREVENT + 1
-pygame.time.set_timer(ADDENEMY, 250)
-
-# Create a custom event for adding a new cloud
-ADDCLOUD = pygame.USEREVENT + 2
-pygame.time.set_timer(ADDCLOUD, 1000)
+# Create a custom event for adding a new missile
+ADDMISSILE = pygame.USEREVENT + 1
+pygame.time.set_timer(ADDMISSILE, 750)  # Adjust the interval as needed
 
 # Load images
-fighter_jet_image = pygame.image.load("fighterjet.jpg").convert_alpha()
-missile_image = pygame.Surface((10, 20))
-missile_image.fill((255, 0, 0))
+fighter_jet_image = pygame.image.load("pngtree-super-fighter-mig-29-png-image_4500660-removebg-preview.png").convert_alpha()
+missile_image = pygame.image.load("missile-removebg-preview.png").convert_alpha()
+gun_image = pygame.Surface((5, 10))
+gun_image.fill((255, 0, 0))
 
 # Define the Player object by extending pygame.sprite.Sprite
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super(Player, self).__init__()
-        self.image = pygame.transform.scale(fighter_jet_image, (80, 60))
+        self.image = pygame.transform.scale(fighter_jet_image, (100, 80))
         self.rect = self.image.get_rect()
+        self.gun_offset_x = 60  # X offset of the gun from the player's rect
+        self.gun_offset_y = 25  # Y offset of the gun from the player's rect
 
     def update(self, pressed_keys):
         if pressed_keys[K_UP]:
@@ -57,50 +56,32 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
-"""
-# Define the Enemy object by extending pygame.sprite.Sprite
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self):
-        super(Enemy, self).__init__()
-        self.image = pygame.Surface((20, 10))
-        self.image.fill((255, 255, 255))
-        self.rect = self.image.get_rect(
-            center=(
-                random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100),
-                random.randint(0, SCREEN_HEIGHT),
-            )
-        )
-        self.speed = random.randint(5, 20)
+        if pressed_keys[pygame.K_SPACE]:
+            self.shoot()
+
+    def shoot(self):
+        bullet = Bullet(self.rect.right + self.gun_offset_x, self.rect.centery + self.gun_offset_y)
+        bullets.add(bullet)
+        all_sprites.add(bullet)
+
+# Define the Bullet object by extending pygame.sprite.Sprite
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Bullet, self).__init__()
+        self.image = gun_image
+        self.rect = self.image.get_rect(center=(x, y))
+        self.speed = 10
 
     def update(self):
-        self.rect.move_ip(-self.speed, 0)
-        if self.rect.right < 0:
-            self.kill()
-"""
-# Define the Cloud object by extending pygame.sprite.Sprite
-class Cloud(pygame.sprite.Sprite):
-    def __init__(self):
-        super(Cloud, self).__init__()
-        self.image = pygame.Surface((50, 30))
-        self.image.fill((200, 200, 200))
-        self.rect = self.image.get_rect(
-            center=(
-                random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100),
-                random.randint(0, SCREEN_HEIGHT),
-            )
-        )
-
-    def update(self):
-        self.rect.move_ip(-5, 0)
-        if self.rect.right < 0:
+        self.rect.move_ip(self.speed, 0)
+        if self.rect.left > SCREEN_WIDTH:
             self.kill()
 
 # Define the Missile object by extending pygame.sprite.Sprite
 class Missile(pygame.sprite.Sprite):
     def __init__(self):
         super(Missile, self).__init__()
-        self.image = pygame.Surface((20, 10))
-        self.image.fill((255, 255, 255))
+        self.image = pygame.transform.scale(missile_image, (50, 20))
         self.rect = self.image.get_rect(
             center=(
                 random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100),
@@ -108,28 +89,20 @@ class Missile(pygame.sprite.Sprite):
             )
         )
         self.speed = random.randint(5, 20)
-  def update(self):
+
+    def update(self):
         self.rect.move_ip(-self.speed, 0)
         if self.rect.right < 0:
             self.kill()
-# Check for collisions between enemies and the player
-ADDMISSILE = pygame.USEREVENT + 3
-pygame.time.set_timer(ADDMISSILE, 1000)  # Adjust the interval as needed
-
-if pygame.sprite.spritecollide(player, missiles, True):
-        running = False  
-
-# Check for collisions between missiles and enemies
-missiles = pygame.sprite.Group()
 
 # Create player instance
 player = Player()
 
 # Create sprite groups
-clouds = pygame.sprite.Group()
 missiles = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
+bullets = pygame.sprite.Group()
 
 # Set up the game clock
 clock = pygame.time.Clock()
@@ -143,35 +116,26 @@ while running:
                 running = False
         elif event.type == QUIT:
             running = False
-        elif event.type == ADDENEMY:
-            new_enemy = Enemy()
-            missiles.add(new_enemy)
-            all_sprites.add(new_enemy)
-        elif event.type == ADDCLOUD:
-            new_cloud = Cloud()
-            clouds.add(new_cloud)
-            all_sprites.add(new_cloud)
+        elif event.type == ADDMISSILE:
+            new_missile = Missile()
+            missiles.add(new_missile)
+            all_sprites.add(new_missile)
 
     pressed_keys = pygame.key.get_pressed()
     player.update(pressed_keys)
 
-    # Create missiles on SPACE key press
-    if pressed_keys[pygame.K_SPACE]:
-        new_missile = Missile(player.rect.centerx, player.rect.centery)
-        missiles.add(new_missile)
-        all_sprites.add(new_missile)
-for event in pygame.event.get():
-    if event.type == ADDMISSILE:
-        new_missile = Missile()
-        missiles.add(new_missile)
-        all_sprites.add(new_missile)
-    clouds.update()
-    missiles.update()
-    # Check for collisions between missiles and enemies
-    for missile in missiles:
-        missiles_hit = pygame.sprite.spritecollide(missile, True)
+    bullets.update()
+
+    for bullet in bullets:
+        missiles_hit = pygame.sprite.spritecollide(bullet, missiles, True)
         if missiles_hit:
-            missile.kill()
+            bullet.kill()
+
+    # Check for collisions between missiles and player
+    if pygame.sprite.spritecollide(player, missiles, True):
+        running = False
+
+    missiles.update()
 
     screen.fill((135, 206, 250))
 
